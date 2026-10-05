@@ -1,0 +1,727 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>スイーツドーナツファクトリー 🍩</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Fredoka+One&family=M+PLUS+Rounded+1c:wght@400;700;800;900&display=swap" rel="stylesheet">
+    <script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.6.0/dist/confetti.browser.min.js"></script>
+    <style>
+        body {
+            font-family: 'M PLUS Rounded 1c', sans-serif;
+            background: linear-gradient(135deg, #fff3f8 0%, #ffe4e6 50%, #fef3c7 100%);
+            touch-action: manipulation;
+        }
+        .font-fredoka {
+            font-family: 'Fredoka One', cursive;
+        }
+        .donut-shadow {
+            filter: drop-shadow(0px 10px 16px rgba(180, 80, 100, 0.2));
+        }
+        @keyframes popIn {
+            0% { transform: scale(0.85); opacity: 0; }
+            80% { transform: scale(1.05); }
+            100% { transform: scale(1); opacity: 1; }
+        }
+        .animate-pop {
+            animation: popIn 0.35s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+        }
+        @keyframes floatSlow {
+            0%, 100% { transform: translateY(0px); }
+            50% { transform: translateY(-6px); }
+        }
+        .animate-float {
+            animation: floatSlow 2.5s ease-in-out infinite;
+        }
+        ::-webkit-scrollbar {
+            height: 6px;
+        }
+        ::-webkit-scrollbar-thumb {
+            background: #f472b6;
+            border-radius: 9999px;
+        }
+    </style>
+</head>
+<body class="min-h-screen text-slate-800 flex flex-col items-center justify-between p-2 sm:p-4 select-none">
+
+    <div class="w-full max-w-md md:max-w-xl bg-white/90 backdrop-blur-md rounded-3xl shadow-2xl border-4 border-pink-200 overflow-hidden flex flex-col my-auto relative">
+        
+        <!-- Top Status Bar Header -->
+        <header class="bg-gradient-to-r from-pink-400 via-rose-400 to-amber-400 p-3 sm:p-4 text-white flex justify-between items-center shadow-md">
+            <div>
+                <h1 class="font-fredoka text-xl sm:text-2xl tracking-wide flex items-center gap-1.5 drop-shadow">
+                    <span>🍩</span> Sweet Donut Factory
+                </h1>
+            </div>
+            <div class="flex gap-2 sm:gap-3 text-center">
+                <div class="bg-white/20 backdrop-blur-md px-3 py-1 rounded-2xl border border-white/30 shadow-inner">
+                    <div class="text-[10px] uppercase font-bold text-pink-100">TIME</div>
+                    <div id="time-display" class="font-fredoka text-xl sm:text-2xl leading-none text-yellow-200">60</div>
+                </div>
+                <div class="bg-white/20 backdrop-blur-md px-3 py-1 rounded-2xl border border-white/30 shadow-inner">
+                    <div class="text-[10px] uppercase font-bold text-pink-100">SCORE</div>
+                    <div id="score-display" class="font-fredoka text-xl sm:text-2xl leading-none text-white">0</div>
+                </div>
+            </div>
+        </header>
+
+        <!-- Progress Bar for Time Remaining -->
+        <div class="w-full bg-pink-100 h-2.5 overflow-hidden">
+            <div id="time-bar" class="bg-gradient-to-r from-yellow-400 to-pink-500 h-full w-full transition-all duration-300 ease-linear"></div>
+        </div>
+
+        <!-- Customer & Order Speech Bubble Area -->
+        <section class="bg-gradient-to-b from-pink-50/80 to-amber-50/80 p-3 sm:p-4 border-b-2 border-pink-100 relative">
+            <div class="flex items-center justify-between mb-2">
+                <div class="flex items-center gap-2">
+                    <span id="customer-avatar" class="text-3xl sm:text-4xl animate-float">🐻</span>
+                    <div>
+                        <div id="customer-name" class="text-xs font-black text-pink-800">くまさんのちゅうもん</div>
+                        <div class="text-[10px] text-pink-500 font-bold">ぴったり作ってね！</div>
+                    </div>
+                </div>
+                <div id="combo-badge" class="hidden font-black text-xs bg-gradient-to-r from-orange-500 to-red-500 text-white px-3 py-1 rounded-full shadow-md animate-bounce">
+                    🔥 <span id="combo-count">0</span> COMBO!
+                </div>
+            </div>
+
+            <!-- Customer Speech Bubble (Order Details) -->
+            <div id="order-card" class="bg-white rounded-2xl p-2.5 sm:p-3 shadow-md border-2 border-pink-200 flex items-center justify-between gap-2 animate-pop relative">
+                <!-- SVG Target Preview -->
+                <div class="w-20 h-20 sm:w-24 sm:h-24 flex-shrink-0 relative flex items-center justify-center bg-pink-50/50 rounded-xl border border-pink-100 p-1">
+                    <svg id="order-svg" viewBox="0 0 200 200" class="w-full h-full donut-shadow"></svg>
+                </div>
+
+                <!-- Text Details Grid -->
+                <div class="flex-1 grid grid-cols-2 gap-1.5 text-[11px] sm:text-xs font-bold">
+                    <div class="bg-amber-50 p-1.5 rounded-lg border border-amber-200/60 flex flex-col">
+                        <span class="text-[9px] text-amber-600 font-normal">① きじ</span>
+                        <span id="order-dough" class="text-amber-900 truncate">---</span>
+                    </div>
+                    <div class="bg-pink-50 p-1.5 rounded-lg border border-pink-200/60 flex flex-col">
+                        <span class="text-[9px] text-pink-600 font-normal">② ソース</span>
+                        <span id="order-sauce" class="text-pink-900 truncate">---</span>
+                    </div>
+                    <div class="bg-purple-50 p-1.5 rounded-lg border border-purple-200/60 flex flex-col">
+                        <span class="text-[9px] text-purple-600 font-normal">③ トッピング</span>
+                        <span id="order-topping" class="text-purple-900 truncate">---</span>
+                    </div>
+                    <div class="bg-emerald-50 p-1.5 rounded-lg border border-emerald-200/60 flex flex-col">
+                        <span class="text-[9px] text-emerald-600 font-normal">④ ラッピング</span>
+                        <span id="order-wrapping" class="text-emerald-900 truncate">---</span>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- Live Donut Preview & Action Buttons -->
+        <section class="p-3 sm:p-4 flex flex-col items-center justify-center bg-white relative min-h-[220px] sm:min-h-[250px]">
+            <!-- Toast Feedback Banner -->
+            <div id="feedback-msg" class="absolute top-2 z-20 hidden text-xs sm:text-sm font-black px-4 py-1.5 rounded-full shadow-lg transform transition-all border"></div>
+
+            <!-- Real-time SVG Workshop Preview -->
+            <div class="w-44 h-44 sm:w-56 sm:h-56 relative flex items-center justify-center">
+                <svg id="preview-svg" viewBox="0 0 200 200" class="w-full h-full donut-shadow transition-transform duration-200"></svg>
+            </div>
+
+            <!-- Action Controls -->
+            <div class="flex gap-2 sm:gap-3 mt-3 w-full max-w-xs">
+                <button id="btn-reset" class="flex-1 bg-slate-100 hover:bg-slate-200 active:scale-95 text-slate-700 font-black py-2 rounded-xl transition shadow border border-slate-200 text-xs sm:text-sm">
+                    🔄 やりなおす
+                </button>
+                <button id="btn-submit" class="flex-2 w-2/3 bg-gradient-to-r from-pink-500 to-rose-500 hover:from-pink-600 hover:to-rose-600 active:scale-95 text-white font-black py-2.5 px-4 rounded-xl transition shadow-lg text-sm sm:text-base tracking-wider border-b-4 border-pink-700">
+                    ✨ できた！（提供）
+                </button>
+            </div>
+        </section>
+
+        <!-- Step Navigation Tabs & Ingredients Palette -->
+        <section class="bg-slate-50 border-t-2 border-pink-100 p-2.5 sm:p-3">
+            
+            <!-- Category Tabs (Step 1-4) -->
+            <div class="flex justify-center mb-2 bg-slate-200/70 p-1 rounded-2xl gap-1">
+                <button data-tab="dough" class="tab-btn flex-1 py-1.5 rounded-xl font-bold text-[11px] sm:text-xs transition-all bg-white text-pink-600 shadow">
+                    🍩 きじ
+                </button>
+                <button data-tab="sauce" class="tab-btn flex-1 py-1.5 rounded-xl font-bold text-[11px] sm:text-xs transition-all text-slate-600 hover:text-slate-900">
+                    🍯 ソース
+                </button>
+                <button data-tab="topping" class="tab-btn flex-1 py-1.5 rounded-xl font-bold text-[11px] sm:text-xs transition-all text-slate-600 hover:text-slate-900">
+                    ✨ トッピング
+                </button>
+                <button data-tab="wrapping" class="tab-btn flex-1 py-1.5 rounded-xl font-bold text-[11px] sm:text-xs transition-all text-slate-600 hover:text-slate-900">
+                    🎁 ラッピング
+                </button>
+            </div>
+
+            <!-- Ingredients Selection Panel Grid -->
+            <div class="min-h-[110px]">
+                <div id="panel-dough" class="ingredient-panel grid grid-cols-5 gap-1.5"></div>
+                <div id="panel-sauce" class="ingredient-panel grid grid-cols-5 gap-1.5 hidden"></div>
+                <div id="panel-topping" class="ingredient-panel grid grid-cols-5 gap-1.5 hidden"></div>
+                <div id="panel-wrapping" class="ingredient-panel grid grid-cols-5 gap-1.5 hidden"></div>
+            </div>
+        </section>
+
+        <!-- Overlay: Game Start Screen -->
+        <div id="start-modal" class="absolute inset-0 bg-gradient-to-br from-pink-400 via-rose-400 to-amber-300 z-30 flex flex-col items-center justify-center p-6 text-center text-white">
+            <div class="text-7xl mb-3 animate-float">🎁🍩</div>
+            <h2 class="font-fredoka text-3xl sm:text-4xl mb-2 drop-shadow-md">ドーナツ屋さんゲーム</h2>
+            <p class="text-xs sm:text-sm mb-6 max-w-xs text-pink-100 font-bold leading-relaxed bg-white/10 p-3 rounded-2xl border border-white/20">
+                お客さまの注文通りに「生地・ソース・トッピング・ラッピング」の4つを正しく選んで可愛いドーナツを作ろう！
+            </p>
+            <button id="btn-start" class="bg-yellow-300 hover:bg-yellow-200 text-amber-950 font-black text-lg sm:text-xl py-3.5 px-10 rounded-full shadow-xl border-b-4 border-yellow-500 active:scale-95 transition">
+                お店をオープン！ ✨
+            </button>
+        </div>
+
+        <!-- Overlay: Game Over Result Modal -->
+        <div id="gameover-modal" class="absolute inset-0 bg-slate-900/90 backdrop-blur-md z-30 flex flex-col items-center justify-center p-6 text-center text-white hidden">
+            <h2 class="font-fredoka text-3xl sm:text-4xl text-yellow-400 mb-1">TIME UP!</h2>
+            <p class="text-xs text-slate-300 mb-4 font-bold">本日の営業は終了しました！結果発表 🎉</p>
+
+            <!-- Result Card -->
+            <div class="bg-white/10 p-4 sm:p-5 rounded-3xl w-full max-w-xs border border-white/20 mb-6 shadow-2xl relative overflow-hidden">
+                <div class="mb-3 border-b border-white/15 pb-2">
+                    <div class="text-[10px] text-pink-200 font-black uppercase tracking-widest">EVALUATION RANK</div>
+                    <div id="final-rank" class="font-fredoka text-6xl text-yellow-300 drop-shadow-lg my-1">S</div>
+                </div>
+                <div class="mb-3">
+                    <div class="text-xs text-slate-300 font-bold">トータルスコア</div>
+                    <div id="final-score" class="font-fredoka text-4xl text-pink-300">0</div>
+                </div>
+                <div class="flex justify-around border-t border-white/15 pt-3">
+                    <div>
+                        <div class="text-[10px] text-slate-300">提供した数</div>
+                        <div id="final-count" class="font-bold text-base text-amber-300">0 個</div>
+                    </div>
+                    <div>
+                        <div class="text-[10px] text-slate-300">さいこうコンボ</div>
+                        <div id="max-combo" class="font-bold text-base text-orange-300">0 回</div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Replay Button -->
+            <button id="btn-restart" class="bg-gradient-to-r from-pink-500 to-rose-500 hover:from-pink-400 hover:to-rose-400 text-white font-black text-lg py-3.5 px-9 rounded-full shadow-xl border-b-4 border-pink-700 active:scale-95 transition flex items-center gap-2">
+                <span>🔄</span> もう一度遊ぶ！
+            </button>
+        </div>
+    </div>
+
+    <script>
+        // Item Data Specification (5 items per category)
+        const INGREDIENTS = {
+            dough: [
+                { id: 'plain', name: 'プレーン', color: '#f3c078', innerColor: '#e0a353', icon: '🍞' },
+                { id: 'chocolate', name: 'チョコ', color: '#5c3a21', innerColor: '#422815', icon: '🍫' },
+                { id: 'matcha', name: '抹茶', color: '#88a765', innerColor: '#6a8848', icon: '🍵' },
+                { id: 'strawberry', name: 'いちご', color: '#f497ac', innerColor: '#d6748b', icon: '🍓' },
+                { id: 'purple_potato', name: '紫いも', color: '#9d4edd', innerColor: '#7b2cbf', icon: '🍠' }
+            ],
+            sauce: [
+                { id: 'strawberry', name: 'ストロベリー', color: '#ff4d6d', icon: '🍓' },
+                { id: 'chocolate', name: 'チョコ', color: '#3d2314', icon: '🍫' },
+                { id: 'caramel', name: 'キャラメル', color: '#d97706', icon: '🍯' },
+                { id: 'white_chocolate', name: 'ホワイト', color: '#fffbeb', icon: '⚪' },
+                { id: 'pistachio', name: 'ピスタチオ', color: '#84cc16', icon: '🟢' }
+            ],
+            topping: [
+                { id: 'sprinkles', name: 'チョコスプレー', icon: '🍫' },
+                { id: 'nuts', name: 'ナッツ', icon: '🥜' },
+                { id: 'powdered_sugar', name: '粉糖', icon: '❄️️' },
+                { id: 'colorful_sprinkles', name: 'カラフル', icon: '🌈' },
+                { id: 'marshmallow', name: 'マシュマロ', icon: '🍥' }
+            ],
+            wrapping: [
+                { id: 'dot_box', name: 'ドットBOX', color: '#fbcfe8', pattern: 'dot', icon: '🔴' },
+                { id: 'stripe_box', name: 'ストライプBOX', color: '#fef08a', pattern: 'stripe', icon: '🥖' },
+                { id: 'heart_box', name: 'ハートBOX', color: '#fda4af', pattern: 'heart', icon: '💖' },
+                { id: 'craft_box', name: 'クラフトBOX', color: '#d97706', pattern: 'craft', icon: '📜' },
+                { id: 'ribbon_box', name: 'リボンBOX', color: '#6ee7b7', pattern: 'ribbon', icon: '🎀' }
+            ]
+        };
+
+        const CUSTOMERS = [
+            { name: 'くまさん', icon: '🐻' },
+            { name: 'うさぎさん', icon: '🐰' },
+            { name: 'ねこさん', icon: '🐱' },
+            { name: 'いぬさん', icon: '🐶' },
+            { name: 'パンダさん', icon: '🐼' }
+        ];
+
+        // Web Audio Synthesizer
+        class AudioSynth {
+            constructor() {
+                this.ctx = null;
+            }
+            init() {
+                if (!this.ctx) {
+                    this.ctx = new (window.AudioContext || window.webkitAudioContext)();
+                }
+            }
+            playSelect() {
+                if (!this.ctx) return;
+                const osc = this.ctx.createOscillator();
+                const gain = this.ctx.createGain();
+                osc.type = 'sine';
+                osc.frequency.setValueAtTime(520, this.ctx.currentTime);
+                osc.frequency.exponentialRampToValueAtTime(880, this.ctx.currentTime + 0.08);
+                gain.gain.setValueAtTime(0.1, this.ctx.currentTime);
+                gain.gain.exponentialRampToValueAtTime(0.01, this.ctx.currentTime + 0.08);
+                osc.connect(gain);
+                gain.connect(this.ctx.destination);
+                osc.start();
+                osc.stop(this.ctx.currentTime + 0.08);
+            }
+            playSuccess() {
+                if (!this.ctx) return;
+                const now = this.ctx.currentTime;
+                const notes = [523.25, 659.25, 783.99, 1046.50];
+                notes.forEach((freq, i) => {
+                    const osc = this.ctx.createOscillator();
+                    const gain = this.ctx.createGain();
+                    osc.type = 'triangle';
+                    osc.frequency.setValueAtTime(freq, now + i * 0.05);
+                    gain.gain.setValueAtTime(0.18, now + i * 0.05);
+                    gain.gain.exponentialRampToValueAtTime(0.001, now + i * 0.05 + 0.2);
+                    osc.connect(gain);
+                    gain.connect(this.ctx.destination);
+                    osc.start(now + i * 0.05);
+                    osc.stop(now + i * 0.05 + 0.2);
+                });
+            }
+            playError() {
+                if (!this.ctx) return;
+                const now = this.ctx.currentTime;
+                const osc = this.ctx.createOscillator();
+                const gain = this.ctx.createGain();
+                osc.type = 'sawtooth';
+                osc.frequency.setValueAtTime(220, now);
+                osc.frequency.setValueAtTime(160, now + 0.1);
+                gain.gain.setValueAtTime(0.15, now);
+                gain.gain.exponentialRampToValueAtTime(0.01, now + 0.25);
+                osc.connect(gain);
+                gain.connect(this.ctx.destination);
+                osc.start();
+                osc.stop(now + 0.25);
+            }
+            playTimeUp() {
+                if (!this.ctx) return;
+                const now = this.ctx.currentTime;
+                const osc = this.ctx.createOscillator();
+                const gain = this.ctx.createGain();
+                osc.type = 'square';
+                osc.frequency.setValueAtTime(440, now);
+                osc.frequency.setValueAtTime(330, now + 0.15);
+                gain.gain.setValueAtTime(0.2, now);
+                gain.gain.exponentialRampToValueAtTime(0.01, now + 0.4);
+                osc.connect(gain);
+                gain.connect(this.ctx.destination);
+                osc.start();
+                osc.stop(now + 0.4);
+            }
+        }
+
+        const audio = new AudioSynth();
+
+        // Game State
+        let score = 0;
+        let timeLeft = 60;
+        let totalTime = 60;
+        let timerInterval = null;
+        let donutsMade = 0;
+        let currentCombo = 0;
+        let maxCombo = 0;
+
+        let currentOrder = { dough: 'plain', sauce: 'strawberry', topping: 'sprinkles', wrapping: 'dot_box' };
+        let playerSelection = { dough: 'plain', sauce: 'strawberry', topping: 'sprinkles', wrapping: 'dot_box' };
+
+        // DOM elements
+        const timeDisplay = document.getElementById('time-display');
+        const scoreDisplay = document.getElementById('score-display');
+        const timeBar = document.getElementById('time-bar');
+        const comboBadge = document.getElementById('combo-badge');
+        const comboCount = document.getElementById('combo-count');
+
+        const customerAvatar = document.getElementById('customer-avatar');
+        const customerName = document.getElementById('customer-name');
+
+        const orderDough = document.getElementById('order-dough');
+        const orderSauce = document.getElementById('order-sauce');
+        const orderTopping = document.getElementById('order-topping');
+        const orderWrapping = document.getElementById('order-wrapping');
+
+        const orderSvg = document.getElementById('order-svg');
+        const previewSvg = document.getElementById('preview-svg');
+        const feedbackMsg = document.getElementById('feedback-msg');
+
+        const startModal = document.getElementById('start-modal');
+        const gameoverModal = document.getElementById('gameover-modal');
+
+        // SVG Dynamic Rendering Engine
+        function renderDonutSVG(container, itemData) {
+            const doughObj = INGREDIENTS.dough.find(d => d.id === itemData.dough) || INGREDIENTS.dough[0];
+            const sauceObj = INGREDIENTS.sauce.find(s => s.id === itemData.sauce) || INGREDIENTS.sauce[0];
+            const toppingObj = INGREDIENTS.topping.find(t => t.id === itemData.topping) || INGREDIENTS.topping[0];
+            const wrappingObj = INGREDIENTS.wrapping.find(w => w.id === itemData.wrapping) || INGREDIENTS.wrapping[0];
+
+            let html = '<g>';
+
+            // 1. WRAPPING BOX LAYER
+            if (wrappingObj.pattern === 'dot') {
+                html += `
+                    <rect x="25" y="25" width="150" height="150" rx="24" fill="${wrappingObj.color}" stroke="#f472b6" stroke-width="3" />
+                    <circle cx="50" cy="50" r="7" fill="#ffffff" opacity="0.6" />
+                    <circle cx="150" cy="50" r="7" fill="#ffffff" opacity="0.6" />
+                    <circle cx="100" cy="100" r="7" fill="#ffffff" opacity="0.6" />
+                    <circle cx="50" cy="150" r="7" fill="#ffffff" opacity="0.6" />
+                    <circle cx="150" cy="150" r="7" fill="#ffffff" opacity="0.6" />
+                `;
+            } else if (wrappingObj.pattern === 'stripe') {
+                html += `
+                    <rect x="25" y="25" width="150" height="150" rx="20" fill="${wrappingObj.color}" stroke="#eab308" stroke-width="3" />
+                    <line x1="30" y1="25" x2="170" y2="165" stroke="#f59e0b" stroke-width="8" opacity="0.3" />
+                    <line x1="60" y1="25" x2="170" y2="135" stroke="#f59e0b" stroke-width="8" opacity="0.3" />
+                    <line x1="25" y1="60" x2="135" y2="170" stroke="#f59e0b" stroke-width="8" opacity="0.3" />
+                `;
+            } else if (wrappingObj.pattern === 'heart') {
+                html += `
+                    <rect x="25" y="25" width="150" height="150" rx="24" fill="${wrappingObj.color}" stroke="#fb7185" stroke-width="3" />
+                    <path d="M 45,40 A 6,6 0 0,1 55,40 A 6,6 0 0,1 65,40 Q 65,50 55,56 Q 45,50 45,40 Z" fill="#ffffff" opacity="0.7" />
+                    <path d="M 135,40 A 6,6 0 0,1 145,40 A 6,6 0 0,1 155,40 Q 155,50 145,56 Q 135,50 135,40 Z" fill="#ffffff" opacity="0.7" />
+                    <path d="M 135,140 A 6,6 0 0,1 145,140 A 6,6 0 0,1 155,140 Q 155,150 145,156 Q 135,150 135,140 Z" fill="#ffffff" opacity="0.7" />
+                    <path d="M 45,140 A 6,6 0 0,1 55,140 A 6,6 0 0,1 65,140 Q 65,150 55,156 Q 45,150 45,140 Z" fill="#ffffff" opacity="0.7" />
+                `;
+            } else if (wrappingObj.pattern === 'craft') {
+                html += `
+                    <polygon points="100,15 180,60 180,140 100,185 20,140 20,60" fill="${wrappingObj.color}" stroke="#92400e" stroke-width="4" />
+                    <line x1="20" y1="60" x2="100" y2="105" stroke="#92400e" stroke-width="2" opacity="0.5" />
+                    <line x1="180" y1="60" x2="100" y2="105" stroke="#92400e" stroke-width="2" opacity="0.5" />
+                `;
+            } else if (wrappingObj.pattern === 'ribbon') {
+                html += `
+                    <rect x="22" y="22" width="156" height="156" rx="20" fill="${wrappingObj.color}" stroke="#10b981" stroke-width="3" />
+                    <rect x="90" y="22" width="20" height="156" fill="#34d399" />
+                    <rect x="22" y="90" width="156" height="20" fill="#34d399" />
+                    <circle cx="100" cy="100" r="14" fill="#059669" />
+                `;
+            }
+
+            // 2. DONUT DOUGH BASE LAYER
+            html += `
+                <circle cx="100" cy="100" r="62" fill="${doughObj.color}" />
+                <circle cx="100" cy="100" r="54" fill="${doughObj.innerColor}" opacity="0.35" />
+                <circle cx="100" cy="100" r="22" fill="#ffffff" />
+            `;
+
+            // Purple Potato detail texture dots
+            if (doughObj.id === 'purple_potato') {
+                for (let i = 0; i < 12; i++) {
+                    const angle = (i / 12) * Math.PI * 2;
+                    const radius = 38 + (i % 2) * 8;
+                    const cx = 100 + Math.cos(angle) * radius;
+                    const cy = 100 + Math.sin(angle) * radius;
+                    html += `<circle cx="${cx}" cy="${cy}" r="2" fill="#ffffff" opacity="0.4" />`;
+                }
+            }
+
+            // 3. SAUCE LAYER
+            html += `
+                <path d="
+                    M 100, 42
+                    A 58,58 0 1,0 100,158
+                    A 58,58 0 1,0 100,42
+                    Z
+                    M 100, 74
+                    A 26,26 0 1,1 100,126
+                    A 26,26 0 1,1 100,74
+                    Z
+                " fill="${sauceObj.color}" fill-rule="evenodd" opacity="0.9" />
+                <path d="M 65,65 A 46,46 0 0,1 115,48" stroke="#ffffff" stroke-width="4.5" stroke-linecap="round" fill="none" opacity="0.4" />
+            `;
+
+            // 4. TOPPING LAYER
+            if (toppingObj.id === 'sprinkles') {
+                const colors = ['#f43f5e', '#3b82f6', '#eab308', '#22c55e'];
+                const pts = [
+                    {x: 70, y: 65, r: 25}, {x: 130, y: 65, r: -30},
+                    {x: 140, y: 115, r: 45}, {x: 75, y: 130, r: -15},
+                    {x: 100, y: 52, r: 0}, {x: 100, y: 148, r: 90}
+                ];
+                pts.forEach((pt, i) => {
+                    html += `<rect x="${pt.x}" y="${pt.y}" width="9" height="4" rx="2" fill="${colors[i % colors.length]}" transform="rotate(${pt.r}, ${pt.x}, ${pt.y})" />`;
+                });
+            } else if (toppingObj.id === 'nuts') {
+                const pts = [
+                    {x: 72, y: 62}, {x: 128, y: 70}, {x: 138, y: 120}, 
+                    {x: 68, y: 120}, {x: 100, y: 50}, {x: 100, y: 150}
+                ];
+                pts.forEach(pt => {
+                    html += `<path d="M ${pt.x-3},${pt.y-2} L ${pt.x+4},${pt.y-1} L ${pt.x+2},${pt.y+4} L ${pt.x-4},${pt.y+2} Z" fill="#78350f" />`;
+                });
+            } else if (toppingObj.id === 'powdered_sugar') {
+                for (let i = 0; i < 24; i++) {
+                    const angle = (i / 24) * Math.PI * 2;
+                    const radius = 38 + (i % 3) * 6;
+                    const cx = 100 + Math.cos(angle) * radius;
+                    const cy = 100 + Math.sin(angle) * radius;
+                    html += `<circle cx="${cx}" cy="${cy}" r="${1.8 + (i % 2)}" fill="#ffffff" opacity="0.85" />`;
+                }
+            } else if (toppingObj.id === 'colorful_sprinkles') {
+                const colors = ['#ec4899', '#8b5cf6', '#06b6d4', '#10b981', '#f59e0b'];
+                for (let i = 0; i < 10; i++) {
+                    const angle = (i / 10) * Math.PI * 2;
+                    const radius = 42;
+                    const cx = 100 + Math.cos(angle) * radius;
+                    const cy = 100 + Math.sin(angle) * radius;
+                    html += `<circle cx="${cx}" cy="${cy}" r="3" fill="${colors[i % colors.length]}" />`;
+                }
+            } else if (toppingObj.id === 'marshmallow') {
+                const pts = [
+                    {x: 75, y: 65}, {x: 125, y: 65}, {x: 135, y: 125}, {x: 65, y: 125}, {x: 100, y: 48}
+                ];
+                pts.forEach(pt => {
+                    html += `<rect x="${pt.x-5}" y="${pt.y-5}" width="10" height="10" rx="3" fill="#ffffff" stroke="#f472b6" stroke-width="1.5" />`;
+                });
+            }
+
+            html += '</g>';
+            container.innerHTML = html;
+        }
+
+        function setupIngredientPanels() {
+            ['dough', 'sauce', 'topping', 'wrapping'].forEach(type => {
+                const panel = document.getElementById(`panel-${type}`);
+                panel.innerHTML = '';
+
+                INGREDIENTS[type].forEach(item => {
+                    const btn = document.createElement('button');
+                    btn.className = `ingredient-btn flex flex-col items-center justify-center p-1.5 rounded-xl border-2 transition-all active:scale-95 text-center`;
+                    btn.dataset.type = type;
+                    btn.dataset.id = item.id;
+
+                    btn.innerHTML = `
+                        <span class="text-base sm:text-lg mb-0.5">${item.icon}</span>
+                        <span class="text-[9px] sm:text-[10px] font-bold leading-tight">${item.name}</span>
+                    `;
+
+                    btn.addEventListener('click', () => selectIngredient(type, item.id));
+                    panel.appendChild(btn);
+                });
+            });
+            updateActivePanelUI();
+        }
+
+        function selectIngredient(type, id) {
+            audio.playSelect();
+            playerSelection[type] = id;
+            updateActivePanelUI();
+            renderDonutSVG(previewSvg, playerSelection);
+
+            previewSvg.classList.remove('animate-pop');
+            void previewSvg.offsetWidth;
+            previewSvg.classList.add('animate-pop');
+        }
+
+        function updateActivePanelUI() {
+            document.querySelectorAll('.ingredient-btn').forEach(btn => {
+                const type = btn.dataset.type;
+                const id = btn.dataset.id;
+                const isSelected = playerSelection[type] === id;
+
+                if (isSelected) {
+                    btn.classList.add('bg-pink-100', 'border-pink-500', 'text-pink-950', 'shadow-sm');
+                    btn.classList.remove('bg-white', 'border-slate-200', 'text-slate-600');
+                } else {
+                    btn.classList.remove('bg-pink-100', 'border-pink-500', 'text-pink-950', 'shadow-sm');
+                    btn.classList.add('bg-white', 'border-slate-200', 'text-slate-600');
+                }
+            });
+        }
+
+        // Tab Switching Logic
+        document.querySelectorAll('.tab-btn').forEach(tab => {
+            tab.addEventListener('click', (e) => {
+                const targetTab = e.currentTarget.dataset.tab;
+
+                document.querySelectorAll('.tab-btn').forEach(b => {
+                    b.classList.remove('bg-white', 'text-pink-600', 'shadow');
+                    b.classList.add('text-slate-600');
+                });
+                e.currentTarget.classList.add('bg-white', 'text-pink-600', 'shadow');
+                e.currentTarget.classList.remove('text-slate-600');
+
+                document.querySelectorAll('.ingredient-panel').forEach(p => p.classList.add('hidden'));
+                document.getElementById(`panel-${targetTab}`).classList.remove('hidden');
+            });
+        });
+
+        // Generate Random Customer Order
+        function generateRandomOrder() {
+            const randomDough = INGREDIENTS.dough[Math.floor(Math.random() * INGREDIENTS.dough.length)].id;
+            const randomSauce = INGREDIENTS.sauce[Math.floor(Math.random() * INGREDIENTS.sauce.length)].id;
+            const randomTopping = INGREDIENTS.topping[Math.floor(Math.random() * INGREDIENTS.topping.length)].id;
+            const randomWrapping = INGREDIENTS.wrapping[Math.floor(Math.random() * INGREDIENTS.wrapping.length)].id;
+
+            currentOrder = { dough: randomDough, sauce: randomSauce, topping: randomTopping, wrapping: randomWrapping };
+
+            // Change Customer Character
+            const randomCustomer = CUSTOMERS[Math.floor(Math.random() * CUSTOMERS.length)];
+            customerAvatar.textContent = randomCustomer.icon;
+            customerName.textContent = `${randomCustomer.name}のちゅうもん`;
+
+            // Update Labels
+            orderDough.textContent = INGREDIENTS.dough.find(d => d.id === randomDough).name;
+            orderSauce.textContent = INGREDIENTS.sauce.find(s => s.id === randomSauce).name;
+            orderTopping.textContent = INGREDIENTS.topping.find(t => t.id === randomTopping).name;
+            orderWrapping.textContent = INGREDIENTS.wrapping.find(w => w.id === randomWrapping).name;
+
+            renderDonutSVG(orderSvg, currentOrder);
+
+            const orderCard = document.getElementById('order-card');
+            orderCard.classList.remove('animate-pop');
+            void orderCard.offsetWidth;
+            orderCard.classList.add('animate-pop');
+        }
+
+        document.getElementById('btn-submit').addEventListener('click', () => {
+            const isMatch = playerSelection.dough === currentOrder.dough &&
+                            playerSelection.sauce === currentOrder.sauce &&
+                            playerSelection.topping === currentOrder.topping &&
+                            playerSelection.wrapping === currentOrder.wrapping;
+
+            if (isMatch) {
+                // Success
+                audio.playSuccess();
+                donutsMade++;
+                currentCombo++;
+                if (currentCombo > maxCombo) maxCombo = currentCombo;
+
+                const comboBonus = 1 + (currentCombo - 1) * 0.25;
+                const points = Math.round(100 * comboBonus);
+                score += points;
+
+                timeLeft = Math.min(60, timeLeft + 3);
+
+                showFeedback(`✨ かんぺき！ +${points}pt (+3秒)`, 'bg-emerald-500', 'text-white', 'border-emerald-300');
+
+                scoreDisplay.textContent = score;
+                timeDisplay.textContent = timeLeft;
+                updateTimeBar();
+
+                if (currentCombo > 1) {
+                    comboCount.textContent = currentCombo;
+                    comboBadge.classList.remove('hidden');
+                }
+
+                resetPlayerSelection();
+                generateRandomOrder();
+            } else {
+                // Fail
+                audio.playError();
+                currentCombo = 0;
+                comboBadge.classList.add('hidden');
+                showFeedback('❌ ちがうみたい… もう一度！', 'bg-rose-500', 'text-white', 'border-rose-300');
+            }
+        });
+
+        document.getElementById('btn-reset').addEventListener('click', () => {
+            audio.playSelect();
+            resetPlayerSelection();
+        });
+
+        function resetPlayerSelection() {
+            playerSelection = { dough: 'plain', sauce: 'strawberry', topping: 'sprinkles', wrapping: 'dot_box' };
+            updateActivePanelUI();
+            renderDonutSVG(previewSvg, playerSelection);
+        }
+
+        function showFeedback(msg, bgColor, textColor, borderColor) {
+            feedbackMsg.textContent = msg;
+            feedbackMsg.className = `absolute top-2 z-20 text-xs sm:text-sm font-black px-4 py-1.5 rounded-full shadow-lg ${bgColor} ${textColor} ${borderColor} border animate-pop`;
+            feedbackMsg.classList.remove('hidden');
+
+            setTimeout(() => {
+                feedbackMsg.classList.add('hidden');
+            }, 1200);
+        }
+
+        function updateTimeBar() {
+            const pct = Math.max(0, (timeLeft / totalTime) * 100);
+            timeBar.style.width = `${pct}%`;
+        }
+
+        // Game Start & Timer Logic
+        document.getElementById('btn-start').addEventListener('click', () => {
+            audio.init();
+            startModal.classList.add('hidden');
+            startGame();
+        });
+
+        document.getElementById('btn-restart').addEventListener('click', () => {
+            audio.init();
+            gameoverModal.classList.add('hidden');
+            startGame();
+        });
+
+        function startGame() {
+            score = 0;
+            timeLeft = 60;
+            donutsMade = 0;
+            currentCombo = 0;
+            maxCombo = 0;
+
+            scoreDisplay.textContent = score;
+            timeDisplay.textContent = timeLeft;
+            updateTimeBar();
+            comboBadge.classList.add('hidden');
+
+            resetPlayerSelection();
+            generateRandomOrder();
+
+            if (timerInterval) clearInterval(timerInterval);
+            timerInterval = setInterval(() => {
+                timeLeft--;
+                timeDisplay.textContent = timeLeft;
+                updateTimeBar();
+
+                if (timeLeft <= 0) {
+                    endGame();
+                }
+            }, 1000);
+        }
+
+        function endGame() {
+            clearInterval(timerInterval);
+            audio.playTimeUp();
+
+            let rank = 'C';
+            if (score >= 1800) rank = 'S';
+            else if (score >= 1200) rank = 'A';
+            else if (score >= 600) rank = 'B';
+
+            document.getElementById('final-rank').textContent = rank;
+            document.getElementById('final-score').textContent = score;
+            document.getElementById('final-count').textContent = `${donutsMade} 個`;
+            document.getElementById('max-combo').textContent = `${maxCombo} 回`;
+            gameoverModal.classList.remove('hidden');
+
+            if (typeof confetti === 'function' && (rank === 'S' || rank === 'A')) {
+                confetti({
+                    particleCount: 100,
+                    spread: 70,
+                    origin: { y: 0.6 }
+                });
+            }
+        }
+
+        window.onload = () => {
+            setupIngredientPanels();
+            renderDonutSVG(previewSvg, playerSelection);
+            renderDonutSVG(orderSvg, currentOrder);
+        };
+    </script>
+</body>
+</html>
